@@ -1,17 +1,16 @@
-#include<chrono>
-#include<ctime>
-#include<time.h>
-#include<string>
-#include<iostream>
+#include <chrono>
+#include <ctime>
+#include <time.h>
+#include <string>
+#include <iostream>
+#include <functional>
 #include "MyTime.hpp"
 #include <thread>
 
 using namespace std;
 using namespace chrono;
 
-
-
-int main()
+void test_time()
 {
 	std::cout << "++++++++++++++++++++++精度+++++++++++++++++++++" << endl;
 	{//精度
@@ -87,6 +86,67 @@ int main()
 		cout << timer.elapsed_micro() << endl;
 		cout << timer.elapsed_nano() << endl;
 	}
+	std::cout << "\n\n" << endl;
+	{
+		using Clock = std::chrono::high_resolution_clock;
+		using TimePoint = std::chrono::time_point<Clock>;
+
+		const function<void(const TimePoint&)> print_ms = [](const TimePoint& point)
+		{
+			using Ms = std::chrono::milliseconds;
+			const Clock::duration since_epoch = point.time_since_epoch();
+			std::cout << std::chrono::duration_cast<Ms>(since_epoch).count() << " ms\n";
+		};
+
+		const TimePoint default_value = TimePoint(); // (1)
+		print_ms(default_value); // 0 ms
+
+		const Clock::duration duration_4_seconds = std::chrono::seconds(4);
+		const TimePoint time_point_4_seconds(duration_4_seconds); // (2)
+																  // 从纪元开始 4 秒
+		print_ms(time_point_4_seconds); // 4000 ms
+
+		const time_point<steady_clock> time_point_now = Clock::now(); // (3)
+		print_ms(time_point_now); // 43098276 ms
+
+		const time_point<system_clock> time_point_sys = system_clock::now();
+		const time_t tt = std::chrono::system_clock::to_time_t(time_point_sys);
+		cout << "sys time :" << tt << endl;
+		cout << "sys time :" <<
+			duration_cast<std::chrono::microseconds>(time_point_sys.time_since_epoch()).count() << endl;
+	}
+
+}
+
+// 制造函数工厂并使用它
+#define FUNCTION(name, a) int fun_##name() { return a;}
+
+FUNCTION(abcd, 12)
+FUNCTION(fff, 2)
+FUNCTION(qqq, 23)
+
+#undef FUNCTION
+#define FUNCTION 34
+#define OUTPUT(a) std::cout << #a << '\n'
+
+int main()
+{
+
+	{
+		std::cout << "abcd: " << fun_abcd() << '\n';
+		std::cout << "fff: " << fun_fff() << '\n';
+		std::cout << "qqq: " << fun_qqq() << '\n';
+		//std::cout << FUNCTION << '\n';
+		OUTPUT(million);               // 注意缺少引号
+	}
 	system("pause");
+	return 0;
+}
+
+
+
+int test_define()
+{
+
 	return 0;
 }

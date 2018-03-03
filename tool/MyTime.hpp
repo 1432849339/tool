@@ -5,6 +5,8 @@
 
 namespace time_ec
 {
+#define DURATION_CAST(unit) std::chrono::duration_cast<std::chrono::unit>
+
 	class Timer
 	{
 	public:
@@ -55,11 +57,93 @@ namespace time_ec
 		std::chrono::time_point<std::chrono::high_resolution_clock> m_begin;
 	};
 
-	class
+	class  time_compare
+	{
+		/**
+		 * \brief
+		 * \param interval 指定比较间隔,单位为秒
+		 */
+		time_compare(const int interval = 1)
+			:m_begin_(std::chrono::system_clock::now())
+		{
+			m_interval_ = decltype(m_interval_)(interval);
+		}
+
+		/**
+		* \brief
+		* \param interval 指定比较间隔,单位为秒
+		*/
+		time_compare(const std::chrono::duration<int64_t> durat,
+			const int interval = 1)
+			:m_interval_(decltype(m_interval_)(interval)), m_begin_(durat)
+		{
+			//...
+		}
+
+		/**
+		 * \brief 重设比较源
+		 * \param other
+		 */
+		void reset(const std::chrono::time_point<std::chrono::system_clock> other)
+		{
+			m_begin_ = other;
+		}
+
+		/**		   间隔小于8小时有效(8*60*60s)
+		 * \brief 判断两个时间点的数据是否在同一时间间隔内(间隔单位秒)
+		 * \return
+		 */
+
+		bool is_same(const std::chrono::time_point<std::chrono::system_clock> other) const
+		{
+			const auto count_o = DURATION_CAST(seconds)(m_begin_.time_since_epoch()).count() / m_interval_;
+			const auto count_s = DURATION_CAST(seconds)(other.time_since_epoch()).count() / m_interval_;
+			return count_o == count_s;
+		}
+
+		/**
+		 * \brief 传入unix时间戳,比较两个之间的差小于指定间隔
+		 * \param other_second unix时间戳(单位秒)
+		 * \return
+		 */
+		bool is_same(const int64_t other_second) const
+		{
+			const std::chrono::time_point<std::chrono::system_clock> other{
+				std::chrono::duration<int64_t>(other_second) };
+			return is_same(other);
+		}
+
+		/**
+		 * \brief 传入 年月日  时分秒 比较
+		 * \param ymd 年月日
+		 * \param hms 时分秒
+		 * \return
+		 */
+		bool is_same(const int ymd, const int hms) const
+		{
+			struct tm tm;
+			memset(&tm, 0, sizeof(tm));
+			//20180303
+			tm.tm_year = ymd / 10000 - 1900;
+			tm.tm_mon = (ymd % 10000) / 100 - 1;
+			tm.tm_mday = ymd % 100;
+			//95151
+			tm.tm_hour = hms / 10000;
+			tm.tm_min = (hms % 10000) / 100;
+			tm.tm_sec = hms % 100;
+			return is_same(static_cast<int64_t>(mktime(&tm)));
+		}
+
+	private:
+		int														m_interval_;//间隔(秒)
+		std::chrono::time_point<std::chrono::system_clock>		m_begin_;
+	};
+
+	class time_cast
 	{
 
 	private:
-		std::chrono::time_point<std::chrono::high_resolution_clock> m_begin;
+
 	};
 
 	inline std::string getCurrentSystemTime()
@@ -79,4 +163,6 @@ namespace time_ec
 			static_cast<int>(ptm.tm_sec));
 		return std::string(date);
 	}
+
+
 }
